@@ -2692,11 +2692,18 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             // initially we tried TVP, however it performs quite poorly.
             // keep in mind SQL support up to 2000 params easily in sp_executesql, needing more is rare
 
-            if (FeatureSupport.Get(command.Connection).Arrays)
+            var featureSupport = FeatureSupport.Get(command.Connection);
+            if (featureSupport.Arrays)
             {
                 var arrayParm = command.CreateParameter();
                 arrayParm.Value = value ?? DBNull.Value;
                 arrayParm.ParameterName = namePrefix;
+
+                if (featureSupport.ArrayParamSettings != null)
+                {
+                    featureSupport.ArrayParamSettings(command, (IList)value);
+                }
+
                 command.Parameters.Add(arrayParm);
             }
             else
@@ -5053,6 +5060,7 @@ string name, object value = null, DbType? dbType = null, ParameterDirection? dir
     {
         private static readonly FeatureSupport
             @default = new FeatureSupport(false),
+            oracle = new FeatureSupport(true) { ArrayParamSettings = (cmd, prm) => { cmd.GetType().GetProperty("ArrayBindCount").SetValue(cmd, prm.Count); } },
             postgres = new FeatureSupport(true);
 
         /// <summary>
@@ -5062,6 +5070,7 @@ string name, object value = null, DbType? dbType = null, ParameterDirection? dir
         {
             string name = connection == null ? null : connection.GetType().Name;
             if (string.Equals(name, "npgsqlconnection", StringComparison.InvariantCultureIgnoreCase)) return postgres;
+            if (string.Equals(name, "OracleConnection", StringComparison.InvariantCultureIgnoreCase)) return oracle;
             return @default;
         }
         private FeatureSupport(bool arrays)
@@ -5072,6 +5081,10 @@ string name, object value = null, DbType? dbType = null, ParameterDirection? dir
         /// True if the db supports array columns e.g. Postgresql
         /// </summary>
         public bool Arrays { get; private set; }
+        /// <summary>
+        /// Command settins for array bind
+        /// </summary>
+        public Action<IDbCommand, IList> ArrayParamSettings { get; private set; }
     }
 
     /// <summary>
