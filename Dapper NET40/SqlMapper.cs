@@ -5060,7 +5060,7 @@ string name, object value = null, DbType? dbType = null, ParameterDirection? dir
     {
         private static readonly FeatureSupport
             @default = new FeatureSupport(false),
-            oracle = new FeatureSupport(true) { ArrayParamSettings = (cmd, prm) => { cmd.GetType().GetProperty("ArrayBindCount").SetValue(cmd, prm.Count); } },
+            oracle = new FeatureSupport(true) { ArrayParamSettings = (cmd, prm) => { cmd.GetType().GetProperty("ArrayBindCount").SetValue(cmd, prm.Count, null); } },
             postgres = new FeatureSupport(true);
 
         /// <summary>
